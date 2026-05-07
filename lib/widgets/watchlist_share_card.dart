@@ -18,7 +18,7 @@ class WatchlistShareCard extends StatelessWidget {
   final Map<String, Uint8List> posters;
   final int totalCount;
 
-  static const _posterWidth = 101.0;
+  static const _posterWidth = 100.0;
   static const _posterHeight = _posterWidth * 1.5;
   static const _gap = 8.0;
 
@@ -26,6 +26,7 @@ class WatchlistShareCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: 360,
+      clipBehavior: Clip.hardEdge,
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
@@ -61,6 +62,7 @@ class WatchlistShareCard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         RichText(
+          overflow: TextOverflow.clip,
           text: TextSpan(
             children: [
               TextSpan(
