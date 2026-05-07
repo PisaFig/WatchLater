@@ -17,10 +17,6 @@ import '../widgets/trailer_bottom_sheet.dart';
 
 const _accent = WatchLaterPalette.accent;
 
-// ---------------------------------------------------------------------------
-// Screen
-// ---------------------------------------------------------------------------
-
 class DiscoverScreen extends StatefulWidget {
   const DiscoverScreen({super.key});
 
@@ -31,10 +27,7 @@ class DiscoverScreen extends StatefulWidget {
 class _DiscoverScreenState extends State<DiscoverScreen> {
   final _controller = CardSwiperController();
 
-  // Full dataset returned by the APIs (cached after first load).
   List<ContentItem> _allContent = [];
-
-  // The filtered + shuffled deck currently shown in the swiper.
   List<ContentItem> _cards = [];
 
   bool _loading = true;
@@ -44,7 +37,6 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
   bool _noResults = false;
   bool _contentLoaded = false;
 
-  // Bumped on shuffle so CardSwiper rebuilds from scratch.
   int _deckKey = 0;
 
   @override
@@ -61,10 +53,6 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
     _controller.dispose();
     super.dispose();
   }
-
-  // ---------------------------------------------------------------------------
-  // Data loading
-  // ---------------------------------------------------------------------------
 
   Future<void> _loadContent() async {
     setState(() {
@@ -96,10 +84,6 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
     _loadContent();
   }
 
-  // ---------------------------------------------------------------------------
-  // Deck construction
-  // ---------------------------------------------------------------------------
-
   List<ContentItem> _buildDeck() => _buildDeckFrom(_allContent);
 
   List<ContentItem> _buildDeckFrom(List<ContentItem> source) {
@@ -116,10 +100,6 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
     }
     return [...items]..shuffle();
   }
-
-  // ---------------------------------------------------------------------------
-  // Swiper callbacks
-  // ---------------------------------------------------------------------------
 
   bool _onSwipe(int prevIdx, int? currIdx, CardSwiperDirection dir) {
     if (!mounted) return false;
@@ -148,10 +128,6 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
     return true;
   }
 
-  // ---------------------------------------------------------------------------
-  // User actions
-  // ---------------------------------------------------------------------------
-
   void _save() => _controller.swipe(CardSwiperDirection.right);
   void _skip() => _controller.swipe(CardSwiperDirection.left);
 
@@ -170,10 +146,6 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
       _deckKey++;
     });
   }
-
-  // ---------------------------------------------------------------------------
-  // Build
-  // ---------------------------------------------------------------------------
 
   @override
   Widget build(BuildContext context) {
@@ -254,10 +226,6 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Top bar
-// ---------------------------------------------------------------------------
-
 class _TopBar extends StatelessWidget {
   const _TopBar();
 
@@ -279,6 +247,15 @@ class _TopBar extends StatelessWidget {
           const Spacer(),
           IconButton(
             icon: Icon(
+              Icons.search_rounded,
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.6),
+            ),
+            onPressed: () => context.push('/search'),
+          ),
+          IconButton(
+            icon: Icon(
               Icons.settings_outlined,
               color: Theme.of(
                 context,
@@ -291,10 +268,6 @@ class _TopBar extends StatelessWidget {
     );
   }
 }
-
-// ---------------------------------------------------------------------------
-// Action bar (skip / undo / save)
-// ---------------------------------------------------------------------------
 
 class _ActionBar extends StatelessWidget {
   const _ActionBar({
@@ -391,10 +364,6 @@ class _ActionButton extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Loading state
-// ---------------------------------------------------------------------------
-
 class _LoadingState extends StatelessWidget {
   const _LoadingState();
 
@@ -424,10 +393,6 @@ class _LoadingState extends StatelessWidget {
     );
   }
 }
-
-// ---------------------------------------------------------------------------
-// Error state
-// ---------------------------------------------------------------------------
 
 class _ErrorState extends StatelessWidget {
   const _ErrorState({required this.message, required this.onRetry});
@@ -496,10 +461,6 @@ class _ErrorState extends StatelessWidget {
     );
   }
 }
-
-// ---------------------------------------------------------------------------
-// Empty / exhausted state
-// ---------------------------------------------------------------------------
 
 class _EmptyState extends StatelessWidget {
   const _EmptyState({required this.onShuffle, this.noResults = false});

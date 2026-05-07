@@ -4,10 +4,6 @@ import 'package:http/http.dart' as http;
 import '../config/constants.dart';
 import '../models/content_item.dart';
 
-// ESPN has no public YouTube trailer API. These are per-sport highlight reel
-// IDs sourced from each league's official YouTube channel. Rotate through the
-// pool so different events show different previews.
-// Replace with real IDs from the YouTube Data API in production.
 const _nflIds = ['VKIVBHKnhyo', 'OJ0ZH13J7aQ', 'CbulKW7YiSY', 'GNPX_jGBBok'];
 const _nbaIds = ['tIFGgkEtUuE', 'RKMGHWjHvFY', 'vZl7BDVbQ1A', 'AKowbHguSAI'];
 const _mlbIds = ['OxbHJn5CUI0', 'GCujKGdm3oE', 'UOgyPOlKEqY', 'dKb4q_Cjnbc'];
@@ -106,7 +102,6 @@ class EspnService {
         .cast<Map<String, dynamic>>();
     if (competitors.isEmpty) return null;
 
-    // Prefer the home team's logo as the poster.
     final home = competitors.firstWhere(
       (c) => c['homeAway'] == 'home',
       orElse: () => competitors.first,
@@ -120,7 +115,6 @@ class EspnService {
         event['shortName'] as String? ??
         '${meta.genre} Match';
 
-    // Build a description from venue, round note, and status.
     final description = _buildDescription(competition, event['date'] as String?);
 
     final dateStr = event['date'] as String? ?? '';
@@ -149,7 +143,6 @@ class EspnService {
   ) {
     final parts = <String>[];
 
-    // Round / playoff note (e.g. "Divisional Round")
     final notes = (competition['notes'] as List? ?? [])
         .cast<Map<String, dynamic>>();
     if (notes.isNotEmpty) {
@@ -157,7 +150,6 @@ class EspnService {
       if (note.isNotEmpty) parts.add(note);
     }
 
-    // Venue
     final venue = competition['venue'] as Map<String, dynamic>?;
     final venueName = venue?['fullName'] as String? ?? '';
     final city =
@@ -166,12 +158,10 @@ class EspnService {
       parts.add(city.isNotEmpty ? '$venueName, $city' : venueName);
     }
 
-    // Game status (Scheduled / Final / In Progress)
     final status =
         ((competition['status'] as Map?)?['type'])?['description'] as String?;
     if (status != null && status != 'Scheduled') parts.add(status);
 
-    // Readable date
     if (dateStr != null) {
       final dt = DateTime.tryParse(dateStr);
       if (dt != null) {

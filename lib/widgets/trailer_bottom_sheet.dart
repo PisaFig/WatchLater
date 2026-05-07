@@ -10,23 +10,12 @@ import '../theme/app_theme.dart';
 const _bg = WatchLaterPalette.darkSurface;
 const _accent = WatchLaterPalette.accent;
 
-// ---------------------------------------------------------------------------
-// Set to true to verify the iframe player works with a known-good video.
-// Flip back to false once confirmed working.
-// ---------------------------------------------------------------------------
-const _useTestId = false;
-const _testYoutubeId = 'dQw4w9WgXcQ'; // Rick Astley — reliably works everywhere
-
 class TrailerBottomSheet extends StatefulWidget {
   const TrailerBottomSheet({super.key, required this.item});
 
   final ContentItem item;
 
   static void show(BuildContext context, ContentItem item) {
-    debugPrint(
-      '[Trailer] show() called — title="${item.title}" '
-      'id="${item.trailerYoutubeId}"',
-    );
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -43,24 +32,13 @@ class TrailerBottomSheet extends StatefulWidget {
 class _TrailerBottomSheetState extends State<TrailerBottomSheet> {
   YoutubePlayerController? _controller;
 
-  // Resolves which YouTube ID to actually load, respecting the test flag.
-  String get _resolvedId {
-    if (_useTestId) return _testYoutubeId;
-    return widget.item.trailerYoutubeId;
-  }
-
-  bool get _hasTrailer => _resolvedId.isNotEmpty;
+  bool get _hasTrailer => widget.item.trailerYoutubeId.isNotEmpty;
 
   void _onThumbnailTap() {
-    debugPrint(
-      '[Trailer] thumbnail tapped — resolved id="$_resolvedId" '
-      'hasTrailer=$_hasTrailer',
-    );
     if (!_hasTrailer) return;
-
     setState(() {
       _controller = YoutubePlayerController.fromVideoId(
-        videoId: _resolvedId,
+        videoId: widget.item.trailerYoutubeId,
         autoPlay: true,
         params: const YoutubePlayerParams(
           showControls: true,
@@ -69,7 +47,6 @@ class _TrailerBottomSheetState extends State<TrailerBottomSheet> {
         ),
       );
     });
-    debugPrint('[Trailer] YoutubePlayerController created for "$_resolvedId"');
   }
 
   @override
@@ -110,10 +87,6 @@ class _TrailerBottomSheetState extends State<TrailerBottomSheet> {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Drag handle
-// ---------------------------------------------------------------------------
-
 class _DragHandle extends StatelessWidget {
   const _DragHandle();
 
@@ -130,11 +103,6 @@ class _DragHandle extends StatelessWidget {
     );
   }
 }
-
-// ---------------------------------------------------------------------------
-// Player — three-phase: thumbnail → thumbnail+spinner → player
-// Also renders a "no trailer" state when hasTrailer is false.
-// ---------------------------------------------------------------------------
 
 class _Player extends StatelessWidget {
   const _Player({
@@ -161,8 +129,6 @@ class _Player extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // Base layer: poster thumbnail — always present so the sheet feels
-          // instant to open regardless of network or player state.
           CachedNetworkImage(
             imageUrl: _previewUrl,
             fit: BoxFit.cover,
@@ -175,17 +141,13 @@ class _Player extends StatelessWidget {
                 ColoredBox(color: Theme.of(context).scaffoldBackgroundColor),
           ),
 
-          // Phase 2–3: iframe — only mounted after the user taps play.
           if (controller != null) YoutubePlayer(controller: controller!),
 
-          // Phase 2: loading overlay — fades out when the player starts.
-          // Uses StreamBuilder to avoid any YoutubeValueBuilder API ambiguity.
           if (controller != null)
             StreamBuilder<YoutubePlayerValue>(
               stream: controller!.stream,
               builder: (context, snapshot) {
                 final state = snapshot.data?.playerState;
-                debugPrint('[Trailer] playerState=$state');
                 final ready =
                     state != null &&
                     state != PlayerState.unknown &&
@@ -219,7 +181,6 @@ class _Player extends StatelessWidget {
               },
             ),
 
-          // Phase 1: play-button overlay (shown when no controller yet).
           if (controller == null)
             hasTrailer
                 ? GestureDetector(
@@ -252,8 +213,7 @@ class _Player extends StatelessWidget {
                       ),
                     ),
                   )
-                : // No trailer available — show a message over the poster.
-                  ColoredBox(
+                : ColoredBox(
                     color: Colors.black.withValues(alpha: 0.55),
                     child: Center(
                       child: Column(
@@ -283,10 +243,6 @@ class _Player extends StatelessWidget {
     );
   }
 }
-
-// ---------------------------------------------------------------------------
-// Metadata section (scrollable)
-// ---------------------------------------------------------------------------
 
 class _MetadataSection extends StatelessWidget {
   const _MetadataSection({required this.item});
@@ -381,10 +337,6 @@ class _GenreChip extends StatelessWidget {
     );
   }
 }
-
-// ---------------------------------------------------------------------------
-// Close button
-// ---------------------------------------------------------------------------
 
 class _CloseButton extends StatelessWidget {
   const _CloseButton({required this.onTap});

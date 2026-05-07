@@ -10,10 +10,6 @@ import '../theme/app_theme.dart';
 
 const _accent = WatchLaterPalette.accent;
 
-// ---------------------------------------------------------------------------
-// Data
-// ---------------------------------------------------------------------------
-
 class _TypeMeta {
   final String type;
   final String label;
@@ -76,10 +72,6 @@ const _allTypes = [
   ),
 ];
 
-// ---------------------------------------------------------------------------
-// Screen
-// ---------------------------------------------------------------------------
-
 class OnboardingScreen extends StatelessWidget {
   const OnboardingScreen({super.key, this.isEditMode = false});
 
@@ -134,10 +126,6 @@ class _OnboardingBody extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Edit mode header (replaces logo + subtitle when isEditMode = true)
-// ---------------------------------------------------------------------------
-
 class _EditModeHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -177,10 +165,6 @@ class _EditModeHeader extends StatelessWidget {
     ).animate().fadeIn(duration: 300.ms);
   }
 }
-
-// ---------------------------------------------------------------------------
-// Logo & subtitle
-// ---------------------------------------------------------------------------
 
 class _Logo extends StatelessWidget {
   @override
@@ -232,19 +216,12 @@ class _SectionHeading extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// 2-column grid
-// Left column:  Movies (index 0), TV Shows (index 2)
-// Right column: Anime  (index 1), Sports   (index 3)
-// ---------------------------------------------------------------------------
-
 class _TwoColumnGrid extends StatelessWidget {
   const _TwoColumnGrid({required this.prefs});
   final PreferencesProvider prefs;
 
   @override
   Widget build(BuildContext context) {
-    // Split into two columns: [0,2] and [1,3]
     final leftTypes = [_allTypes[0], _allTypes[2]];
     final rightTypes = [_allTypes[1], _allTypes[3]];
 
@@ -307,7 +284,6 @@ class _TypeColumn extends StatelessWidget {
   ) {
     final wasSelected = prefs.selectedContentTypes.contains(meta.type);
     prefs.toggleContentType(meta.type);
-    // When deselecting a type, also remove its genres
     if (wasSelected) {
       for (final genre in meta.genres) {
         if (prefs.selectedGenres.contains(genre)) {
@@ -317,10 +293,6 @@ class _TypeColumn extends StatelessWidget {
     }
   }
 }
-
-// ---------------------------------------------------------------------------
-// Content type card
-// ---------------------------------------------------------------------------
 
 class _ContentTypeCard extends StatelessWidget {
   const _ContentTypeCard({
@@ -422,10 +394,6 @@ class _ContentTypeCard extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Genre chips section
-// ---------------------------------------------------------------------------
-
 class _GenreSection extends StatelessWidget {
   const _GenreSection({required this.meta, required this.prefs});
   final _TypeMeta meta;
@@ -490,10 +458,6 @@ class _GenreSection extends StatelessWidget {
     );
   }
 }
-
-// ---------------------------------------------------------------------------
-// Start button
-// ---------------------------------------------------------------------------
 
 class _StartButton extends StatelessWidget {
   const _StartButton({required this.enabled, this.isEditMode = false});

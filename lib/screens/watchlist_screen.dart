@@ -1,21 +1,28 @@
+import 'dart:io';
 import 'dart:math' as math;
+import 'dart:typed_data';
+import 'dart:ui' as ui;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../models/content_item.dart';
 import '../providers/watchlist_provider.dart';
 import '../theme/app_theme.dart';
+import '../widgets/watchlist_share_card.dart';
 
 const _accent = WatchLaterPalette.accent;
 const _cardBg = WatchLaterPalette.darkSurface;
 
-// Filter chip data: (label, type key)
 const _filters = [
   ('All', 'all'),
   ('Movies', 'movie'),
@@ -23,10 +30,6 @@ const _filters = [
   ('TV Shows', 'tvshow'),
   ('Sports', 'sports'),
 ];
-
-// ---------------------------------------------------------------------------
-// Screen
-// ---------------------------------------------------------------------------
 
 class WatchlistScreen extends StatelessWidget {
   const WatchlistScreen({super.key});
@@ -44,7 +47,7 @@ class WatchlistScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _TopBar(total: total),
+            _TopBar(total: total, items: provider.watchlist),
             _FilterRow(activeFilter: filter, provider: provider),
             items.isEmpty
                 ? Expanded(child: _EmptyState(isEmpty: total == 0))
@@ -58,18 +61,15 @@ class WatchlistScreen extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Top bar
-// ---------------------------------------------------------------------------
-
 class _TopBar extends StatelessWidget {
-  const _TopBar({required this.total});
+  const _TopBar({required this.total, required this.items});
   final int total;
+  final List<ContentItem> items;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+      padding: const EdgeInsets.fromLTRB(20, 12, 8, 4),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -86,6 +86,9 @@ class _TopBar extends StatelessWidget {
             duration: const Duration(milliseconds: 250),
             child: _CountBadge(count: total, key: ValueKey(total)),
           ),
+          const Spacer(),
+          if (items.isNotEmpty)
+            _ShareButton(items: items, totalCount: total),
         ],
       ),
     );
@@ -115,10 +118,6 @@ class _CountBadge extends StatelessWidget {
     );
   }
 }
-
-// ---------------------------------------------------------------------------
-// Filter chips row
-// ---------------------------------------------------------------------------
 
 class _FilterRow extends StatelessWidget {
   const _FilterRow({required this.activeFilter, required this.provider});
@@ -190,10 +189,6 @@ class _Chip extends StatelessWidget {
     );
   }
 }
-
-// ---------------------------------------------------------------------------
-// Poster grid
-// ---------------------------------------------------------------------------
 
 class _PosterGrid extends StatelessWidget {
   const _PosterGrid({required this.items, required this.provider});
@@ -273,10 +268,6 @@ class _PosterGrid extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Individual grid card
-// ---------------------------------------------------------------------------
-
 class _GridItem extends StatelessWidget {
   const _GridItem({
     super.key,
@@ -311,7 +302,6 @@ class _GridItem extends StatelessWidget {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                // Poster
                 CachedNetworkImage(
                   imageUrl: item.posterUrl,
                   fit: BoxFit.cover,
@@ -329,7 +319,6 @@ class _GridItem extends StatelessWidget {
                     ),
                   ),
                 ),
-                // Bottom gradient
                 const DecoratedBox(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
@@ -343,7 +332,6 @@ class _GridItem extends StatelessWidget {
                     ),
                   ),
                 ),
-                // Content type badge
                 Positioned(
                   top: 8,
                   right: 8,
@@ -362,7 +350,6 @@ class _GridItem extends StatelessWidget {
                     ),
                   ),
                 ),
-                // Watched badge
                 if (item.isWatched)
                   Positioned(
                     top: 8,
@@ -388,7 +375,6 @@ class _GridItem extends StatelessWidget {
                       ),
                     ),
                   ),
-                // Title
                 Positioned(
                   left: 8,
                   right: 8,
@@ -415,12 +401,191 @@ class _GridItem extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Empty state
-// ---------------------------------------------------------------------------
+class _ShareButton extends StatefulWidget {
+  const _ShareButton({required this.items, required this.totalCount});
+  final List<ContentItem> items;
+  final int totalCount;
+
+  @override
+  State<_ShareButton> createState() => _ShareButtonState();
+}
+
+class _ShareButtonState extends State<_ShareButton> {
+  bool _loading = false;
+
+  Future<void> _onTap() async {
+    if (_loading) return;
+    setState(() => _loading = true);
+    try {
+      final preview = widget.items.take(6).toList();
+      final posters = <String, Uint8List>{};
+      await Future.wait(preview.map((item) async {
+        try {
+          final res = await http.get(Uri.parse(item.posterUrl));
+          if (res.statusCode == 200) posters[item.id] = res.bodyBytes;
+        } catch (_) {}
+      }));
+      if (!mounted) return;
+      await showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (_) => _SharePreviewSheet(
+          previewItems: preview,
+          posters: posters,
+          totalCount: widget.totalCount,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _onTap,
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: _loading
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: _accent,
+                ),
+              )
+            : const Icon(Icons.ios_share_rounded, color: _accent, size: 22),
+      ),
+    );
+  }
+}
+
+class _SharePreviewSheet extends StatefulWidget {
+  const _SharePreviewSheet({
+    required this.previewItems,
+    required this.posters,
+    required this.totalCount,
+  });
+
+  final List<ContentItem> previewItems;
+  final Map<String, Uint8List> posters;
+  final int totalCount;
+
+  @override
+  State<_SharePreviewSheet> createState() => _SharePreviewSheetState();
+}
+
+class _SharePreviewSheetState extends State<_SharePreviewSheet> {
+  final _cardKey = GlobalKey();
+  bool _sharing = false;
+
+  Future<void> _share() async {
+    if (_sharing) return;
+    setState(() => _sharing = true);
+    try {
+      final boundary =
+          _cardKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
+      final image = await boundary.toImage(pixelRatio: 3.0);
+      final byteData =
+          await image.toByteData(format: ui.ImageByteFormat.png);
+      final bytes = byteData!.buffer.asUint8List();
+
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/watchlist_share.png');
+      await file.writeAsBytes(bytes);
+
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        text: 'My WatchLater watchlist 🎬',
+      );
+    } finally {
+      if (mounted) setState(() => _sharing = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: _cardBg,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: Colors.white24,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Text(
+              'Share Your Watchlist',
+              style: GoogleFonts.bebasNeue(
+                fontSize: 22,
+                color: Colors.white,
+                letterSpacing: 1.5,
+              ),
+            ),
+            const SizedBox(height: 16),
+            RepaintBoundary(
+              key: _cardKey,
+              child: WatchlistShareCard(
+                previewItems: widget.previewItems,
+                posters: widget.posters,
+                totalCount: widget.totalCount,
+              ),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton.icon(
+                onPressed: _share,
+                icon: _sharing
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.ios_share_rounded),
+                label: Text(
+                  _sharing ? 'Preparing…' : 'Share',
+                  style: GoogleFonts.dmSans(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _accent,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  elevation: 0,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 class _EmptyState extends StatelessWidget {
-  /// [isEmpty] true = watchlist is fully empty; false = active filter has no results.
   const _EmptyState({required this.isEmpty});
   final bool isEmpty;
 

@@ -47,7 +47,6 @@ class ContentItem {
   }
 }
 
-// Manual Hive TypeAdapter (avoids build_runner code generation)
 class ContentItemAdapter extends TypeAdapter<ContentItem> {
   @override
   final int typeId = 0;

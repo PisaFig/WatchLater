@@ -42,10 +42,6 @@ class SettingsScreen extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Top bar
-// ---------------------------------------------------------------------------
-
 class _TopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -83,10 +79,6 @@ class _TopBar extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Shared divider
-// ---------------------------------------------------------------------------
-
 class _RowDivider extends StatelessWidget {
   const _RowDivider();
 
@@ -100,10 +92,6 @@ class _RowDivider extends StatelessWidget {
     );
   }
 }
-
-// ---------------------------------------------------------------------------
-// Tile base — all tiles share this layout
-// ---------------------------------------------------------------------------
 
 class _TileBase extends StatelessWidget {
   const _TileBase({
@@ -173,10 +161,6 @@ class _TileBase extends StatelessWidget {
     );
   }
 }
-
-// ---------------------------------------------------------------------------
-// Individual tiles
-// ---------------------------------------------------------------------------
 
 class _DarkModeTile extends StatelessWidget {
   const _DarkModeTile();

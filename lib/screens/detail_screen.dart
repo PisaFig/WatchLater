@@ -7,14 +7,11 @@ import 'package:shimmer/shimmer.dart';
 
 import '../models/content_item.dart';
 import '../providers/watchlist_provider.dart';
+import '../services/tmdb_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/trailer_bottom_sheet.dart';
 
 const _accent = WatchLaterPalette.accent;
-
-// ---------------------------------------------------------------------------
-// Entry point — handles the nullable extra from go_router
-// ---------------------------------------------------------------------------
 
 class DetailScreen extends StatelessWidget {
   const DetailScreen({super.key, this.item});
@@ -59,10 +56,6 @@ class DetailScreen extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Main detail view
-// ---------------------------------------------------------------------------
-
 class _DetailView extends StatelessWidget {
   const _DetailView({required this.item});
   final ContentItem item;
@@ -87,7 +80,6 @@ class _DetailView extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Title
                   Text(
                     item.title,
                     style: GoogleFonts.bebasNeue(
@@ -98,13 +90,10 @@ class _DetailView extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  // Rating · Year · Duration
                   _InlineMetaRow(item: item),
                   const SizedBox(height: 14),
-                  // Genre chips
                   _GenreChipsRow(genres: item.genres),
                   const SizedBox(height: 28),
-                  // Overview
                   const _SectionHeader('Overview'),
                   const SizedBox(height: 8),
                   Text(
@@ -118,12 +107,13 @@ class _DetailView extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 28),
-                  // Details grid
                   const _SectionHeader('Details'),
                   const SizedBox(height: 12),
                   _DetailsGrid(item: item),
+                  if (item.contentType == 'movie' ||
+                      item.contentType == 'tvshow')
+                    _WhereToWatchSection(contentId: item.id),
                   const SizedBox(height: 36),
-                  // Action buttons — only this subtree rebuilds on watchlist changes
                   _WatchlistActions(item: item),
                 ],
               ),
@@ -134,10 +124,6 @@ class _DetailView extends StatelessWidget {
     );
   }
 }
-
-// ---------------------------------------------------------------------------
-// Poster (full-width image + gradients + floating buttons)
-// ---------------------------------------------------------------------------
 
 class _PosterSection extends StatelessWidget {
   const _PosterSection({
@@ -157,7 +143,6 @@ class _PosterSection extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // Poster image
           CachedNetworkImage(
             imageUrl: item.posterUrl,
             fit: BoxFit.cover,
@@ -177,7 +162,6 @@ class _PosterSection extends StatelessWidget {
               ),
             ),
           ),
-          // Top scrim — ensures back button + badge are readable over any poster
           DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -191,7 +175,6 @@ class _PosterSection extends StatelessWidget {
               ),
             ),
           ),
-          // Bottom fade into #0D0D1A (the page background)
           DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -205,9 +188,7 @@ class _PosterSection extends StatelessWidget {
               ),
             ),
           ),
-          // Back button (floats in safe area)
           Positioned(top: topPadding + 8, left: 12, child: _FloatingBack()),
-          // Content type badge
           Positioned(
             top: topPadding + 8,
             right: 12,
@@ -282,10 +263,6 @@ class _TypeBadge extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Inline meta row: ⭐ rating · year · duration
-// ---------------------------------------------------------------------------
-
 class _InlineMetaRow extends StatelessWidget {
   const _InlineMetaRow({required this.item});
   final ContentItem item;
@@ -329,10 +306,6 @@ class _InlineMetaRow extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Genre chips (all genres, violet outline)
-// ---------------------------------------------------------------------------
-
 class _GenreChipsRow extends StatelessWidget {
   const _GenreChipsRow({required this.genres});
   final List<String> genres;
@@ -372,10 +345,6 @@ class _GenreChip extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Section header label
-// ---------------------------------------------------------------------------
-
 class _SectionHeader extends StatelessWidget {
   const _SectionHeader(this.text);
   final String text;
@@ -393,10 +362,6 @@ class _SectionHeader extends StatelessWidget {
     );
   }
 }
-
-// ---------------------------------------------------------------------------
-// Details grid (label/value pairs)
-// ---------------------------------------------------------------------------
 
 class _DetailsGrid extends StatelessWidget {
   const _DetailsGrid({required this.item});
@@ -467,18 +432,12 @@ class _DetailRow extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Action buttons — extracted so only THIS widget rebuilds on watchlist changes
-// ---------------------------------------------------------------------------
-
 class _WatchlistActions extends StatelessWidget {
   const _WatchlistActions({required this.item});
   final ContentItem item;
 
   @override
   Widget build(BuildContext context) {
-    // context.watch scoped to this widget only — the poster, title, and all
-    // static content above never rebuild when the watchlist changes.
     final provider = context.watch<WatchlistProvider>();
     final isSaved = provider.isInWatchlist(item.id);
 
@@ -533,6 +492,179 @@ class _WatchlistActions extends StatelessWidget {
             ),
           ),
         ],
+      ],
+    );
+  }
+}
+
+class _WhereToWatchSection extends StatefulWidget {
+  const _WhereToWatchSection({required this.contentId});
+  final String contentId;
+
+  @override
+  State<_WhereToWatchSection> createState() => _WhereToWatchSectionState();
+}
+
+class _WhereToWatchSectionState extends State<_WhereToWatchSection> {
+  late final Future<WatchProvidersResult> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = TmdbService.fetchWatchProviders(widget.contentId);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<WatchProvidersResult>(
+      future: _future,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return _buildShimmer(context);
+        }
+        final providers = snapshot.data?.providers ?? {};
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 28),
+            const _SectionHeader('Where to Watch'),
+            const SizedBox(height: 14),
+            if (providers.isEmpty)
+              Text(
+                'No streaming info available.',
+                style: GoogleFonts.dmSans(
+                  fontSize: 13,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.38),
+                ),
+              )
+            else ...[
+              if (providers['flatrate'] != null)
+                _ProviderRow(
+                  label: 'Stream',
+                  providers: providers['flatrate']!,
+                ),
+              if (providers['rent'] != null) ...[
+                const SizedBox(height: 12),
+                _ProviderRow(label: 'Rent', providers: providers['rent']!),
+              ],
+              if (providers['buy'] != null) ...[
+                const SizedBox(height: 12),
+                _ProviderRow(label: 'Buy', providers: providers['buy']!),
+              ],
+            ],
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildShimmer(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 28),
+        const _SectionHeader('Where to Watch'),
+        const SizedBox(height: 14),
+        Row(
+          children: List.generate(
+            4,
+            (i) => Padding(
+              padding: const EdgeInsets.only(right: 10),
+              child: Shimmer.fromColors(
+                baseColor: context.appColors.shimmerBase,
+                highlightColor: context.appColors.shimmerHighlight,
+                child: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ProviderRow extends StatelessWidget {
+  const _ProviderRow({required this.label, required this.providers});
+  final String label;
+  final List<WatchProvider> providers;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        SizedBox(
+          width: 52,
+          child: Text(
+            label,
+            style: GoogleFonts.dmSans(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.38),
+            ),
+          ),
+        ),
+        Expanded(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: providers.take(8).map((p) {
+                return Padding(
+                  padding: const EdgeInsets.only(right: 10),
+                  child: Tooltip(
+                    message: p.name,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: CachedNetworkImage(
+                        imageUrl: p.logoUrl,
+                        width: 44,
+                        height: 44,
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => Shimmer.fromColors(
+                          baseColor: context.appColors.shimmerBase,
+                          highlightColor: context.appColors.shimmerHighlight,
+                          child: Container(
+                            width: 44,
+                            height: 44,
+                            color: Colors.white,
+                          ),
+                        ),
+                        errorWidget: (context, url, error) => Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: WatchLaterPalette.darkSurface,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            p.name.isNotEmpty ? p.name[0] : '?',
+                            style: GoogleFonts.dmSans(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ),
       ],
     );
   }

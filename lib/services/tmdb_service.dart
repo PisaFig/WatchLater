@@ -4,10 +4,28 @@ import 'package:http/http.dart' as http;
 import '../config/constants.dart';
 import '../models/content_item.dart';
 
+class WatchProvider {
+  const WatchProvider({
+    required this.name,
+    required this.logoPath,
+    required this.displayPriority,
+  });
+
+  final String name;
+  final String logoPath;
+  final int displayPriority;
+
+  String get logoUrl => 'https://image.tmdb.org/t/p/w92$logoPath';
+}
+
+class WatchProvidersResult {
+  const WatchProvidersResult({required this.providers, this.link});
+  final Map<String, List<WatchProvider>> providers;
+  final String? link;
+}
+
 class TmdbService {
   TmdbService._();
-
-  // ─── HTTP helper ─────────────────────────────────────────────────────────
 
   static Future<Map<String, dynamic>> _get(
     String path, [
@@ -27,8 +45,6 @@ class TmdbService {
     return jsonDecode(response.body) as Map<String, dynamic>;
   }
 
-  // ─── Genre helpers ───────────────────────────────────────────────────────
-
   static Map<int, String> _parseGenreMap(Map<String, dynamic> resp) {
     final raw = resp['genres'] as List? ?? [];
     return {
@@ -45,10 +61,6 @@ class TmdbService {
         _ => name,
       };
 
-  // ─── Trailer picker ──────────────────────────────────────────────────────
-
-  /// Returns the best YouTube trailer key from a /videos response object,
-  /// or an empty string when nothing suitable is found.
   static String _pickTrailerId(Map<String, dynamic>? videoResp) {
     final results = (videoResp?['results'] as List? ?? [])
         .cast<Map<String, dynamic>>();
@@ -59,7 +71,6 @@ class TmdbService {
 
     String keyOf(Map m) => m['key'] as String? ?? '';
 
-    // Prefer official YouTube trailers.
     final official =
         results.where((v) => isYt(v) && isTrailer(v) && isOfficial(v));
     if (official.isNotEmpty) return keyOf(official.first);
@@ -73,10 +84,7 @@ class TmdbService {
     return '';
   }
 
-  // ─── Movies ──────────────────────────────────────────────────────────────
-
   static Future<List<ContentItem>> fetchMovies() async {
-    // Genre map + popular list — run in parallel.
     final responses = await Future.wait([
       _get('/genre/movie/list'),
       _get('/movie/popular'),
@@ -87,14 +95,13 @@ class TmdbService {
         .take(20)
         .toList();
 
-    // Fetch full detail (includes runtime) + videos for each movie in parallel.
     final details = await Future.wait<Map<String, dynamic>>(
       rawMovies.map((m) async {
         try {
           return await _get('/movie/${m['id']}',
               {'append_to_response': 'videos'});
         } catch (_) {
-          return m; // fall back to list-level data; trailer will be empty
+          return m;
         }
       }),
     );
@@ -146,8 +153,6 @@ class TmdbService {
       duration: duration,
     );
   }
-
-  // ─── TV Shows ────────────────────────────────────────────────────────────
 
   static Future<List<ContentItem>> fetchTvShows() async {
     final responses = await Future.wait([
@@ -219,8 +224,43 @@ class TmdbService {
     );
   }
 
-  // ─── Shared ──────────────────────────────────────────────────────────────
-
   static String _clean(String? s) =>
       (s == null || s.trim().isEmpty) ? 'No description available.' : s.trim();
+
+  static Future<WatchProvidersResult> fetchWatchProviders(
+    String contentId,
+  ) async {
+    final isMovie = contentId.startsWith('movie_');
+    final isTv = contentId.startsWith('tv_');
+    if (!isMovie && !isTv) return const WatchProvidersResult(providers: {});
+
+    final tmdbId = contentId.substring(contentId.indexOf('_') + 1);
+    final path = isMovie
+        ? '/movie/$tmdbId/watch/providers'
+        : '/tv/$tmdbId/watch/providers';
+
+    final resp = await _get(path);
+    final results = resp['results'] as Map<String, dynamic>?;
+    if (results == null || results.isEmpty) {
+      return const WatchProvidersResult(providers: {});
+    }
+
+    final region = results.containsKey('US') ? 'US' : results.keys.first;
+    final regionData = results[region] as Map<String, dynamic>? ?? {};
+    final link = regionData['link'] as String?;
+
+    final out = <String, List<WatchProvider>>{};
+    for (final category in ['flatrate', 'rent', 'buy']) {
+      final list =
+          (regionData[category] as List?)?.cast<Map<String, dynamic>>();
+      if (list == null || list.isEmpty) continue;
+      out[category] = (list.map((p) => WatchProvider(
+            name: p['provider_name'] as String? ?? '',
+            logoPath: p['logo_path'] as String? ?? '',
+            displayPriority: p['display_priority'] as int? ?? 999,
+          )).toList()
+        ..sort((a, b) => a.displayPriority.compareTo(b.displayPriority)));
+    }
+    return WatchProvidersResult(providers: out, link: link);
+  }
 }

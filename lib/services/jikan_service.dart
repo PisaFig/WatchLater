@@ -1,7 +1,5 @@
 import 'dart:convert';
-import 'dart:math' as math;
 
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../config/constants.dart';
@@ -15,60 +13,23 @@ class JikanService {
     final uri = Uri.parse('${Constants.jikanBase}/top/anime')
         .replace(queryParameters: {'limit': '25', 'filter': 'bypopularity'});
 
-    debugPrint('[Jikan] GET $uri');
-
     late http.Response response;
     try {
       response = await http.get(uri);
-    } catch (e) {
-      debugPrint('[Jikan] network error: $e — using mock anime');
+    } catch (_) {
       return MockData.anime;
     }
 
-    debugPrint('[Jikan] status=${response.statusCode}');
-    // Print a snippet of the raw body so field names are visible in the log.
-    if (response.body.isNotEmpty) {
-      debugPrint(
-          '[Jikan] body preview: ${response.body.substring(0, math.min(600, response.body.length))}');
-    }
-
-    if (response.statusCode != 200) {
-      debugPrint('[Jikan] non-200 — using mock anime');
-      return MockData.anime;
-    }
+    if (response.statusCode != 200) return MockData.anime;
 
     final body = jsonDecode(response.body) as Map<String, dynamic>;
-    final items =
-        (body['data'] as List? ?? []).cast<Map<String, dynamic>>();
+    final items = (body['data'] as List? ?? []).cast<Map<String, dynamic>>();
+    final results = items.map(_buildAnimeItem).whereType<ContentItem>().toList();
 
-    debugPrint('[Jikan] ${items.length} raw entries received');
-    if (items.isNotEmpty) {
-      final first = items.first;
-      debugPrint('[Jikan] first entry keys: ${first.keys.toList()}');
-      debugPrint('[Jikan] first.trailer  = ${first['trailer']}');
-      debugPrint('[Jikan] first.aired    = ${first['aired']}');
-      debugPrint('[Jikan] first.year     = ${first['year']}');
-      debugPrint('[Jikan] first.score    = ${first['score']}');
-      debugPrint('[Jikan] first.genres   = ${first['genres']}');
-    }
-
-    final results =
-        items.map(_buildAnimeItem).whereType<ContentItem>().toList();
-
-    debugPrint(
-        '[Jikan] ${results.length} ContentItems built from ${items.length} entries');
-
-    if (results.isEmpty) {
-      debugPrint('[Jikan] 0 usable items — using mock anime');
-      return MockData.anime;
-    }
-
-    return results;
+    return results.isEmpty ? MockData.anime : results;
   }
 
   static ContentItem? _buildAnimeItem(Map<String, dynamic> a) {
-    // Use empty string for missing trailers — the detail screen disables
-    // the Watch Trailer button when trailerYoutubeId is empty, so no crash.
     final youtubeId =
         (a['trailer'] as Map<String, dynamic>?)?['youtube_id'] as String? ??
         '';
@@ -80,15 +41,12 @@ class JikanService {
             as String?;
     if (posterUrl == null || posterUrl.isEmpty) return null;
 
-    // Combine genres + demographics so onboarding chips ("Shonen" etc.) match.
     final genreNames = <String>[
       ..._extractNames(a['genres']),
       ..._extractNames(a['demographics']).map(_normalizeDemographic),
     ].where((g) => g.isNotEmpty).toSet().toList();
     if (genreNames.isEmpty) genreNames.add('Anime');
 
-    // Jikan v4: top-level `year` is a shortcut; prefer the more granular
-    // `aired.prop.from.year` which is populated even when `year` is null.
     final year = a['year'] as int? ??
         (a['aired'] as Map<String, dynamic>?)?['prop']?['from']?['year']
             as int?;
@@ -97,7 +55,6 @@ class JikanService {
     final duration = a['duration'] as String? ?? 'N/A';
     final synopsis = _clean(a['synopsis'] as String?);
 
-    // Prefer the English title; fall back to romaji title.
     final rawEnglish = a['title_english'] as String?;
     final rawTitle = a['title'] as String?;
     final title = (rawEnglish != null && rawEnglish.isNotEmpty)

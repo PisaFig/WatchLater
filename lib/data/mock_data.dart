@@ -70,19 +70,6 @@ class MockData {
       year: '2021',
       duration: '2h 35m',
     ),
-    ContentItem(
-      id: 'movie_oppenheimer',
-      title: 'Oppenheimer',
-      description:
-          'The story of American scientist J. Robert Oppenheimer and his role in the development of the atomic bomb during World War II.',
-      posterUrl: '$_tmdb/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg',
-      trailerYoutubeId: 'uYPbbksJxIg',
-      contentType: 'movie',
-      genres: ['Biography', 'Drama', 'History'],
-      rating: 8.9,
-      year: '2023',
-      duration: '3h 0m',
-    ),
   ];
 
   static final List<ContentItem> anime = [
@@ -149,19 +136,6 @@ class MockData {
       genres: ['Action', 'Adventure', 'Drama'],
       rating: 9.1,
       year: '2009',
-      duration: '24 min/ep',
-    ),
-    ContentItem(
-      id: 'anime_spy_family',
-      title: 'Spy x Family',
-      description:
-          'A spy on a secret mission must build a family to maintain his cover. He adopts an orphan girl who is a telepath and enters a sham marriage with an assassin, neither knowing each other\'s true identities.',
-      posterUrl: '$_tmdb/qs5WBjJrQRNBdpj9Hf7eRjqzpj0.jpg',
-      trailerYoutubeId: 'ofSMgCEwTTA',
-      contentType: 'anime',
-      genres: ['Action', 'Comedy', 'Slice of Life'],
-      rating: 8.1,
-      year: '2022',
       duration: '24 min/ep',
     ),
   ];
@@ -232,19 +206,6 @@ class MockData {
       year: '2022',
       duration: '2 Seasons',
     ),
-    ContentItem(
-      id: 'tv_last_of_us',
-      title: 'The Last of Us',
-      description:
-          'Joel, a hardened survivor, is hired to smuggle Ellie, a 14-year-old girl, out of an oppressive quarantine zone. What starts as a small job soon becomes a brutal, heartbreaking journey.',
-      posterUrl: '$_tmdb/uKvVjHNqB5VmOrdxqAt2F7J78ED.jpg',
-      trailerYoutubeId: 'uLtkt8BonwM',
-      contentType: 'tvshow',
-      genres: ['Action', 'Drama', 'Horror'],
-      rating: 8.8,
-      year: '2023',
-      duration: '2 Seasons',
-    ),
   ];
 
   static final List<ContentItem> sports = [
@@ -312,19 +273,6 @@ class MockData {
       rating: 9.1,
       year: '2024',
       duration: '4h 15m',
-    ),
-    ContentItem(
-      id: 'sports_super_bowl_lviii',
-      title: 'Super Bowl LVIII',
-      description:
-          'The Kansas City Chiefs defeat the San Francisco 49ers 25-22 in overtime in a thrilling Super Bowl showdown in Las Vegas, with Patrick Mahomes leading yet another legendary comeback.',
-      posterUrl: '$_ytThumb/PwMGqRRX6JU/hqdefault.jpg',
-      trailerYoutubeId: 'PwMGqRRX6JU',
-      contentType: 'sports',
-      genres: ['American Football', 'NFL', 'Super Bowl'],
-      rating: 8.8,
-      year: '2024',
-      duration: '4h 0m',
     ),
   ];
 

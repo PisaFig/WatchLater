@@ -11,13 +11,10 @@ import 'screens/detail_screen.dart';
 import 'screens/discover_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/preferences_screen.dart';
+import 'screens/search_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/watchlist_screen.dart';
 import 'theme/app_theme.dart';
-
-// ---------------------------------------------------------------------------
-// Entry point
-// ---------------------------------------------------------------------------
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -40,11 +37,6 @@ void main() async {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Root app — StatefulWidget so the GoRouter can be created once and hold a
-// reference to the preferencesProvider for its redirect callback.
-// ---------------------------------------------------------------------------
-
 class WatchLaterApp extends StatefulWidget {
   const WatchLaterApp({
     super.key,
@@ -66,31 +58,21 @@ class _WatchLaterAppState extends State<WatchLaterApp> {
   void initState() {
     super.initState();
     _router = GoRouter(
-      // Start at /discover; the redirect below immediately bounces to
-      // /onboarding if the user hasn't completed it yet.
       initialLocation: '/discover',
-
-      // Re-evaluate the redirect whenever PreferencesProvider notifies
-      // (e.g. after completeOnboarding() or resetPreferences()).
       refreshListenable: widget.preferencesProvider,
-
       redirect: (context, state) {
         final done = widget.preferencesProvider.hasCompletedOnboarding;
         final loc = state.matchedLocation;
         final isEditMode = state.extra == true;
 
-        // Not onboarded → force to /onboarding (unless already there).
         if (!done && loc != '/onboarding') return '/onboarding';
 
-        // Onboarded + at /onboarding in normal flow → send to /discover.
-        // Edit-mode visits (extra == true) are allowed through.
         if (done && loc == '/onboarding' && !isEditMode) return '/discover';
 
-        return null; // no redirect needed
+        return null;
       },
 
       routes: [
-        // ── Outside the shell ─────────────────────────────────────────────
         GoRoute(
           path: '/onboarding',
           pageBuilder: (context, state) => _fadePage(
@@ -105,8 +87,14 @@ class _WatchLaterAppState extends State<WatchLaterApp> {
             DetailScreen(item: state.extra as ContentItem?),
           ),
         ),
+        GoRoute(
+          path: '/search',
+          pageBuilder: (context, state) => _slidePage(
+            state,
+            const SearchScreen(),
+          ),
+        ),
 
-        // ── Shell (bottom nav) ────────────────────────────────────────────
         ShellRoute(
           builder: (context, state, child) =>
               _AppShell(location: state.matchedLocation, child: child),
@@ -162,10 +150,6 @@ class _WatchLaterAppState extends State<WatchLaterApp> {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Page transition helpers
-// ---------------------------------------------------------------------------
-
 CustomTransitionPage<void> _fadePage(GoRouterState state, Widget child) {
   return CustomTransitionPage<void>(
     key: state.pageKey,
@@ -194,10 +178,6 @@ CustomTransitionPage<void> _slidePage(GoRouterState state, Widget child) {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Shell — wraps the active tab screen with the persistent bottom nav bar.
-// ---------------------------------------------------------------------------
-
 class _AppShell extends StatelessWidget {
   const _AppShell({required this.child, required this.location});
 
@@ -205,9 +185,9 @@ class _AppShell extends StatelessWidget {
   final String location;
 
   static const _tabs = [
+    (path: '/preferences', emoji: '🎯', label: 'Preferences'),
     (path: '/discover', emoji: '🔍', label: 'Discover'),
     (path: '/watchlist', emoji: '🔖', label: 'Watchlist'),
-    (path: '/preferences', emoji: '🎯', label: 'Preferences'),
     (path: '/settings', emoji: '⚙️', label: 'Settings'),
   ];
 
@@ -229,10 +209,6 @@ class _AppShell extends StatelessWidget {
     );
   }
 }
-
-// ---------------------------------------------------------------------------
-// Custom bottom navigation bar
-// ---------------------------------------------------------------------------
 
 class _BottomNav extends StatelessWidget {
   const _BottomNav({

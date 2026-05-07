@@ -10,10 +10,6 @@ import '../theme/app_theme.dart';
 
 const _accent = WatchLaterPalette.accent;
 
-// ---------------------------------------------------------------------------
-// Public widget
-// ---------------------------------------------------------------------------
-
 class SwipeCard extends StatelessWidget {
   const SwipeCard({
     super.key,
@@ -29,8 +25,6 @@ class SwipeCard extends StatelessWidget {
   final VoidCallback onSkip;
   final VoidCallback onTrailerTap;
 
-  /// Passed directly from flutter_card_swiper's NullableCardBuilder.
-  /// Positive → swiping right (save), negative → swiping left (skip).
   final int horizontalOffsetPercentage;
 
   double get _stampOpacity =>
@@ -56,10 +50,6 @@ class SwipeCard extends StatelessWidget {
     );
   }
 }
-
-// ---------------------------------------------------------------------------
-// Poster image + shimmer placeholder
-// ---------------------------------------------------------------------------
 
 class _PosterImage extends StatelessWidget {
   const _PosterImage({required this.url});
@@ -88,10 +78,6 @@ class _PosterImage extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Gradient overlay: transparent → 85% black at bottom
-// ---------------------------------------------------------------------------
-
 class _GradientOverlay extends StatelessWidget {
   const _GradientOverlay();
 
@@ -113,10 +99,6 @@ class _GradientOverlay extends StatelessWidget {
     );
   }
 }
-
-// ---------------------------------------------------------------------------
-// Top-left rating badge + top-right content-type pill
-// ---------------------------------------------------------------------------
 
 class _TopBadges extends StatelessWidget {
   const _TopBadges({required this.item});
@@ -191,10 +173,6 @@ class _Badge extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Bottom content: title, genres, description, meta row
-// ---------------------------------------------------------------------------
-
 class _BottomContent extends StatelessWidget {
   const _BottomContent({required this.item, required this.onTrailerTap});
   final ContentItem item;
@@ -212,7 +190,6 @@ class _BottomContent extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Title
             Text(
               item.title,
               style: GoogleFonts.bebasNeue(
@@ -225,10 +202,8 @@ class _BottomContent extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 8),
-            // Genre chips
             _GenreChipsRow(genres: item.genres),
             const SizedBox(height: 10),
-            // Description
             Text(
               item.description,
               style: GoogleFonts.dmSans(
@@ -240,7 +215,6 @@ class _BottomContent extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 14),
-            // Meta row
             Row(
               children: [
                 Expanded(child: _MetaInfo(item: item)),
@@ -322,8 +296,6 @@ class _TrailerButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      // HitTestBehavior.opaque ensures this detector wins the gesture arena
-      // against the CardSwiper's horizontal-drag recognizer on a plain tap.
       behavior: HitTestBehavior.opaque,
       onTap: () {
         debugPrint('[SwipeCard] Play Trailer tapped');
@@ -361,10 +333,6 @@ class _TrailerButton extends StatelessWidget {
     );
   }
 }
-
-// ---------------------------------------------------------------------------
-// Swipe stamp overlay (SAVE / SKIP)
-// ---------------------------------------------------------------------------
 
 class _SwipeStamp extends StatelessWidget {
   const _SwipeStamp({
